@@ -93,7 +93,7 @@ def test_admin_accounts_crud(client, auth, admin):
     assert r.status_code == 200
     acc = r.json()["account"]
     assert acc["cookies"]["hatch_sess"] != "secretvalue123"
-    assert "hatch_gw" in r.json()["missing_cookies"]
+    assert "hatch_native_auth_device" in r.json()["missing_cookies"]
 
     r = client.patch(f"/admin/accounts/{acc['id']}", headers=admin, json={"enabled": False})
     assert r.json()["account"]["enabled"] is False

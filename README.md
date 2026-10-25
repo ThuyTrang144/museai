@@ -50,15 +50,13 @@ OpenAI SDK / 9Router / Web Client
 
 ### 1. Installation
 
-Requires Python 3.10+ and a local Chromium or Google Chrome binary.
+Requires Python 3.10+, [uv](https://docs.astral.sh/uv/), and a local Chromium or Google Chrome binary.
 
 ```bash
 git clone https://github.com/d4ncboz/museai.git
 cd museai
 
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
+uv sync --extra dev
 ```
 
 ### 2. Configuration
@@ -69,19 +67,19 @@ Copy the example environment configuration:
 cp .env.example .env
 ```
 
-Default settings in `.env`:
+Recommended `.env` (environment variables use the `MUSE2API_` prefix):
 
 ```ini
-MUSEAI_DRIVER=browser
-MUSEAI_HOST=127.0.0.1
-MUSEAI_PORT=18610
-MUSEAI_API_KEY=sk-museai-local-key
-MUSEAI_ADMIN_KEY=sk-museai-admin-key
-MUSEAI_POOL_STRATEGY=affinity
-MUSEAI_KEEPALIVE_ENABLED=true
+MUSE2API_DRIVER=browser
+MUSE2API_HOST=127.0.0.1
+MUSE2API_PORT=18610
+MUSE2API_API_KEY=sk-museai-local-key
+MUSE2API_ADMIN_KEY=sk-museai-admin-key
+MUSE2API_POOL_STRATEGY=affinity
+MUSE2API_KEEPALIVE_ENABLED=true
 ```
 
-*(Note: Chrome executable is auto-detected on macOS `/Applications/Google Chrome.app` and Linux `/usr/bin/chromium`. Set `MUSEAI_CHROMIUM_PATH` if using a custom path).*
+*(Note: Chrome executable is auto-detected on macOS `/Applications/Google Chrome.app` and Linux `/usr/bin/chromium`. Set `MUSE2API_CHROMIUM_PATH` if using a custom path; on Arch/Omarchy prefer `/usr/bin/google-chrome-stable`, since the distro Chromium wrapper injects Wayland flags that can abort under `--headless=new`).*
 
 ### 3. Run the Service
 
@@ -105,7 +103,6 @@ An active [muse.ai](https://muse.ai) account is required. If you do not have an 
 Export your session cookies from an active [muse.ai](https://muse.ai) browser session (DevTools `F12` ──> `Application` ──> `Cookies` ──> `https://muse.ai`):
 
 - `hatch_sess`: Session authentication token
-- `hatch_gw`: Gateway routing cookie
 - `hatch_native_auth_device`: Registered device UUID
 - `hatch_vml`: Workspace lease token *(optional/dynamic)*
 - `datr`: Meta device verification cookie *(recommended)*

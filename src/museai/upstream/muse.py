@@ -21,7 +21,8 @@ VM_WAKE_API = f"{SITE}/api/hatch/vm/wake"
 
 # Cookies required to establish a logged-in session.
 # hatch_vml is dynamically assigned upon thread creation; datr is recommended for Meta proxy stability.
-SESSION_COOKIES = ("hatch_sess", "hatch_gw", "hatch_native_auth_device")
+# hatch_gw is no longer issued by muse.ai (verified against a live 2026-10 session).
+SESSION_COOKIES = ("hatch_sess", "hatch_native_auth_device")
 RECOMMENDED_COOKIES = ("hatch_vml", "datr")
 
 USER_AGENT = (

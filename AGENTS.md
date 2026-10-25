@@ -16,7 +16,7 @@ It bridges browser-only web sessions into standard LLM client interfaces (NextCh
 museai/
 ├── src/museai/
 │   ├── app.py                 # FastAPI application factory, lifecycle, middleware
-│   ├── config.py              # Pydantic Settings (env vars prefix MUSEAI_ / MUSE2API_)
+│   ├── config.py              # Pydantic Settings (env vars prefix MUSE2API_)
 │   ├── errors.py              # Custom Exception hierarchy -> HTTP & OpenAI JSON error bodies
 │   ├── api/
 │   │   ├── deps.py            # Dependency injection, bearer authentication
@@ -63,10 +63,12 @@ museai/
 ### A. Upstream Authentication Contract
 Upstream `muse.ai` authenticates via browser cookies. The engine manages:
 1. **`hatch_sess`** *(Mandatory)*: User session authorization token.
-2. **`hatch_gw`** *(Mandatory)*: Cluster gateway routing cookie.
-3. **`hatch_native_auth_device`** *(Mandatory)*: Unique device fingerprint UUID.
-4. **`hatch_vml`** *(Recommended)*: Virtual Machine workspace lease token (automatically minted upon thread creation).
-5. **`datr`** *(Recommended)*: Meta infrastructure device integrity cookie (prevents login landing page redirects).
+2. **`hatch_native_auth_device`** *(Mandatory)*: Unique device fingerprint UUID.
+3. **`hatch_vml`** *(Recommended)*: Virtual Machine workspace lease token (automatically minted upon thread creation).
+4. **`datr`** *(Recommended)*: Meta infrastructure device integrity cookie (prevents login landing page redirects).
+
+`hatch_gw` was formerly required for gateway routing but is no longer issued by muse.ai
+(verified against a live 2026-10 session); requiring it caused valid exports to be rejected.
 
 **Critical Implementation Rule:** Cookies passed through CDP `Network.setCookie` MUST be URL-decoded (`urllib.parse.unquote`) and applied across both `.muse.ai` and `muse.ai` domains to guarantee edge proxy compatibility.
 
@@ -84,12 +86,8 @@ Upstream `muse.ai` authenticates via browser cookies. The engine manages:
 
 ### Environment Setup
 ```bash
-# Create and activate virtual environment (Python 3.10+)
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install editable package with dev dependencies
-pip install -e '.[dev]'
+# Install the package with dev dependencies (Python 3.10+, uv)
+uv sync --extra dev
 ```
 
 ### Running Tests

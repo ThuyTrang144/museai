@@ -53,6 +53,9 @@ def parse_cookies_file(file_path: str) -> dict[str, str]:
             d = json.loads(content)
             if "cookies" in d and isinstance(d["cookies"], dict):
                 return d["cookies"]
+            if "cookies" in d and isinstance(d["cookies"], list):
+                # DevTools / Cookie-Editor export: {"url": ..., "cookies": [{name, value}, ...]}
+                return {i["name"]: i["value"] for i in d["cookies"] if i.get("name") and i.get("value")}
             return d
         except json.JSONDecodeError:
             pass

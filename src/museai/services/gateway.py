@@ -53,6 +53,11 @@ class Gateway:
                     log.warning("chat failed on %s (%s), failing over", lease.account.id, exc)
                     tried.append(lease.account.id)
 
+    async def chat_complete(self, req: ChatRequest) -> str:
+        return await self._run(
+            lambda acc: self.driver.chat_complete(acc, req), req.conversation_hint
+        )
+
     async def _run(self, fn: Callable[[Account], Awaitable[T]], hint: str | None = None) -> T:
         tried: list[str] = []
         for attempt in range(self.max_failover + 1):

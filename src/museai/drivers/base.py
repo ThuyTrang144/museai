@@ -112,6 +112,16 @@ class MuseDriver(ABC):
     def chat_stream(self, account: Account, req: ChatRequest) -> AsyncIterator[str]:
         """Yield assistant text deltas. Implementations are async generators."""
 
+    async def chat_complete(self, account: Account, req: ChatRequest) -> str:
+        """Return the finished assistant reply in one shot.
+
+        The default joins ``chat_stream``. Drivers that can observe the final
+        message directly should override it: a DOM re-render mid-reply can make
+        an earlier streamed snapshot stop being a prefix of the next one, so
+        joining deltas duplicates text in a buffered client.
+        """
+        return "".join([chunk async for chunk in self.chat_stream(account, req)])
+
     async def generate_image(self, account: Account, req: ImageRequest) -> list[MediaResult]:
         raise FeatureNotImplemented(f"driver '{self.name}' does not support image generation")
 

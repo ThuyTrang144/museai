@@ -54,10 +54,8 @@ async def chat_completions(body: ChatCompletionRequest, svc: Services = Depends(
     completion_id = "chatcmpl-" + uuid.uuid4().hex[:24]
     created = int(time.time())
     model_name = body.model or spec.id
-    stream = svc.gateway.chat_stream(req)
-
     if not body.stream:
-        text = "".join([d async for d in stream])
+        text = await svc.gateway.chat_complete(req)
         return {
             "id": completion_id,
             "object": "chat.completion",
@@ -71,6 +69,8 @@ async def chat_completions(body: ChatCompletionRequest, svc: Services = Depends(
                 "total_tokens": _approx_tokens(flat.text) + _approx_tokens(text),
             },
         }
+
+    stream = svc.gateway.chat_stream(req)
 
     # Pull the first delta before committing to a 200 so that account/upstream
     # failures surface as proper HTTP errors instead of a broken event stream.

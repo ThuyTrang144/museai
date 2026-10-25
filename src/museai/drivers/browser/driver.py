@@ -399,7 +399,12 @@ class BrowserDriver(MuseDriver):
                     continue
                 got_first = True
                 if text != last:
-                    delta = text[len(emitted):] if text.startswith(emitted) else text
+                    if text.startswith(emitted):
+                        delta = text[len(emitted):]
+                    elif emitted.startswith(text):
+                        delta = ""  # a transient re-render briefly shortened the bubble
+                    else:
+                        delta = text
                     if delta:
                         emitted = text
                         yield delta
@@ -413,20 +418,67 @@ class BrowserDriver(MuseDriver):
             await self._close_tab(tab)
             raise UpstreamError(f"browser error: {exc}") from exc
         finally:
-            if finished:
-                url = ""
-                for _ in range(10):
-                    url = await self._href(tab)
-                    if is_thread_url(url):
-                        break
-                    await asyncio.sleep(0.2)
-                self._save_hot(tab, account, req, url if is_thread_url(url) else "")
-                if tab.thread_url:
-                    log.info("saved hot page %s", tab.thread_url)
+            await self._finish_chat(tab, account, req, finished)
+
+    async def chat_complete(self, account: Account, req: ChatRequest) -> str:
+        """Return the final assistant bubble instead of joining streamed snapshots.
+
+        muse re-renders a bubble while it streams; an earlier ``lastText`` can stop
+        being a prefix of the next one, so concatenating deltas duplicates text.
+        A buffered caller only needs the finished, stable snapshot.
+        """
+        tab, base = await self._begin_chat(account, req)
+        base_count, base_text = base.get("agentCount", 0), base.get("lastText", "")
+        started = time.monotonic()
+        last, stable, got_first = "", 0, False
+        finished = False
+        try:
+            while True:
+                if req.cancel and req.cancel.is_set():
+                    return last
+                elapsed = time.monotonic() - started
+                if elapsed > req.timeout:
+                    raise UpstreamTimeout("assistant reply timed out")
+                if not got_first and elapsed > req.first_token_timeout:
+                    raise UpstreamTimeout("no first token from assistant")
+                await asyncio.sleep(POLL_INTERVAL)
+                st = await self._state(tab)
+                text = st.get("lastText", "")
+                is_new = st.get("agentCount", 0) > base_count or (text and text != base_text)
+                if not is_new or not text:
+                    if elapsed > 15 and any(h in st.get("tail", "") for h in dom.STALL_HINTS):
+                        raise UpstreamTimeout("upstream workspace is stuck connecting")
+                    continue
+                got_first = True
+                if text != last:
+                    last, stable = text, 0
                 else:
-                    log.info("reply finished but the thread url was not ready yet")
+                    stable += 1
+                    if (not st.get("generating") and stable >= STABLE_POLLS_DONE) or stable >= STABLE_POLLS_FORCE:
+                        finished = True
+                        return last
+        except CDPError as exc:
+            await self._close_tab(tab)
+            raise UpstreamError(f"browser error: {exc}") from exc
+        finally:
+            await self._finish_chat(tab, account, req, finished)
+
+    async def _finish_chat(self, tab: _Tab, account: Account, req: ChatRequest,
+                           finished: bool) -> None:
+        if finished:
+            url = ""
+            for _ in range(10):
+                url = await self._href(tab)
+                if is_thread_url(url):
+                    break
+                await asyncio.sleep(0.2)
+            self._save_hot(tab, account, req, url if is_thread_url(url) else "")
+            if tab.thread_url:
+                log.info("saved hot page %s", tab.thread_url)
             else:
-                self._forget(tab)
+                log.info("reply finished but the thread url was not ready yet")
+        else:
+            self._forget(tab)
 
     # ------------------------------------------------------------ media
     @staticmethod
